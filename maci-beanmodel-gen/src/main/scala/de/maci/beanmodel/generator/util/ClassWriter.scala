@@ -1,0 +1,55 @@
+/**
+  * Copyright 2015 Daniel Götten
+  * <p>
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  * <p>
+  * http://www.apache.org/licenses/LICENSE-2.0
+  * <p>
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
+package de.maci.beanmodel.generator.util
+
+import java.io._
+import javax.tools.Diagnostic.Kind
+
+import de.maci.beanmodel.generator.context.GenerationContext
+import de.maci.beanmodel.generator.source.model.SourceModel
+import de.maci.beanmodel.generator.util.Closeables.closeWhenFinished
+import de.maci.beanmodel.generator.util.Exceptions.stackTraceOf
+
+/**
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 18.08.14
+  */
+object ClassWriter {
+
+  def write(models: Set[SourceModel], context: GenerationContext) {
+
+    require(context != null, "Generation context must not be null.")
+
+    models.foreach(writeSourceFile(_, context))
+  }
+
+  def writeSourceFile(model: SourceModel, context: GenerationContext) {
+
+    def handleException: (Exception) => Unit =
+      (e: Exception) => context.env.getMessager.printMessage(Kind.ERROR, stackTraceOf(e).getOrElse("Unknown cause"))
+
+    val sourceFile = context.env.getFiler.createSourceFile(model.className)
+
+    closeWhenFinished(() => sourceFile.openOutputStream, (os: OutputStream) => {
+      closeWhenFinished(() => new PrintWriter(os), (w: PrintWriter) => {
+        w.append(model.toSource)
+
+        w.flush()
+        w.close()
+      }, handleException)
+    }, handleException)
+  }
+}
