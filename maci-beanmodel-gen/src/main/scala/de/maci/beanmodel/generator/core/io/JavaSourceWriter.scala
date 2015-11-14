@@ -13,40 +13,31 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-package de.maci.beanmodel.generator.util
+package de.maci.beanmodel.generator.core.io
 
 import java.io._
 import javax.tools.Diagnostic.Kind
-
 import de.maci.beanmodel.generator.context.GenerationContext
-import de.maci.beanmodel.generator.source.model.SourceModel
-import de.maci.beanmodel.generator.util.Closeables.closeWhenFinished
+import de.maci.beanmodel.generator.util.Closeables.autoclose
 import de.maci.beanmodel.generator.util.Exceptions.stackTraceOf
+import org.jboss.forge.roaster.model.source.JavaSource
 
 /**
-  * @author Daniel Götten <daniel.goetten@googlemail.com>
-  * @since 18.08.14
-  */
-object ClassWriter {
+ * @author Daniel Götten <daniel.goetten@googlemail.com>
+ * @since 18.08.14
+ */
+object JavaSourceWriter {
 
-  def write(models: Set[SourceModel], context: GenerationContext) {
-
-    require(context != null, "Generation context must not be null.")
-
-    models.foreach(writeSourceFile(_, context))
-  }
-
-  def writeSourceFile(model: SourceModel, context: GenerationContext) {
+  def write(source: JavaSource[_], context: GenerationContext) {
 
     def handleException: (Exception) => Unit =
       (e: Exception) => context.env.getMessager.printMessage(Kind.ERROR, stackTraceOf(e).getOrElse("Unknown cause"))
 
-    val sourceFile = context.env.getFiler.createSourceFile(model.className)
+    val sourceFile = context.env.getFiler.createSourceFile(source.getCanonicalName)
 
-    closeWhenFinished(() => sourceFile.openOutputStream, (os: OutputStream) => {
-      closeWhenFinished(() => new PrintWriter(os), (w: PrintWriter) => {
-        w.append(model.toSource)
-
+    autoclose(() => sourceFile.openOutputStream, (os: OutputStream) => {
+      autoclose(() => new PrintWriter(os), (w: PrintWriter) => {
+        w.append(source.toString)
         w.flush()
         w.close()
       }, handleException)

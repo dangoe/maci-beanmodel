@@ -18,13 +18,14 @@ package de.maci.beanmodel.generator.util
 import java.io.Closeable
 
 /**
-  * @author Daniel Götten <daniel.goetten@googlemail.com>
-  * @since 22.08.14
-  */
+ * @author Daniel Götten <daniel.goetten@googlemail.com>
+ * @since 22.08.14
+ */
 object Closeables {
 
-  def closeWhenFinished[C <: Closeable, R](creation: () => C, callback: (C) => R, exceptionCallback: (Exception) => Unit = t => Unit): Option[R] = {
-    val closeable: C = creation.apply()
+  def autoclose[C <: Closeable, R](closeableFactory: () => C, callback: (C) => R, exceptionCallback: (Exception) => Unit = t => Unit) : Option[R] = {
+
+    val closeable: C = closeableFactory.apply()
 
     try {
       return Some(callback(closeable))

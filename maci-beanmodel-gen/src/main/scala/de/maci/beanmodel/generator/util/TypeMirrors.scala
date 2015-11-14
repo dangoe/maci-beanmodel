@@ -20,26 +20,22 @@ import javax.lang.model.`type`.TypeMirror
 import scala.util.matching.Regex.Match
 
 /**
-  * @author Daniel Götten <daniel.goetten@googlemail.com>
-  * @since 21.08.14
-  */
+ * @author Daniel Götten <daniel.goetten@googlemail.com>
+ * @since 21.08.14
+ */
 object TypeMirrors {
 
-  // TODO Add tests and remove redundance
+  // TODO Simplify!
 
-  def simpleName(t: TypeMirror) =
-    """^(\w[a-zA-Z0-9_]*\.)*(\w[a-zA-Z0-9\$]*)?$""".r
-      .findFirstMatchIn(canonicalName(t)).get.group(2)
+  def simpleName(t: TypeMirror) = """^(\w[a-zA-Z0-9_]*\.)*(\w[a-zA-Z0-9\$]*)?$""".r
+    .findFirstMatchIn(canonicalName(t)).get.group(2)
 
-  def canonicalName(t: TypeMirror) =
-    """^((\w[a-zA-Z0-9_]*\.)*\w[a-zA-Z0-9\$]*)(<.*)?$""".r
-      .findFirstMatchIn(t.toString).get.group(1)
+  def canonicalName(t: TypeMirror) = """^((\w[a-zA-Z0-9_]*\.)*\w[a-zA-Z0-9\$]*)(<.*)?$""".r
+    .findFirstMatchIn(t.toString).get.group(1)
 
-  def simplify(typeMirror: TypeMirror) =
-    """((\w[a-z0-9_\-]*\.)+(\w[a-zA-Z0-9\$]*))""".r
-      .replaceAllIn(typeMirror.toString, (m: Match) => m.group(m.groupCount))
+  def simplify(typeMirror: TypeMirror) = """((\w[a-z0-9_\-]*\.)+(\w[a-zA-Z0-9\$]*))""".r
+    .replaceAllIn(typeMirror.toString, (m: Match) => m.group(m.groupCount))
 
-  def relvantTypes(typeMirror: TypeMirror) =
-    """((\w[a-z0-9_\-]*\.)+(\w[a-zA-Z0-9\$]*))""".r
-      .findAllMatchIn(typeMirror.toString).map(m => m.toString()).toSet
+  def relvantTypes(typeMirror: TypeMirror) = """((\w[a-z0-9_\-]*\.)+(\w[a-zA-Z0-9\$]*))""".r
+    .findAllMatchIn(typeMirror.toString).map(m => m.toString()).toSet
 }

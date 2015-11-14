@@ -13,30 +13,29 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-package de.maci.beanmodel.generator.source.model
+package de.maci.beanmodel.generator.core
 
 import java.lang.annotation.Annotation
 import javax.lang.model.element._
-
 import de.maci.beanmodel.generator.context.GenerationContext
-import de.maci.beanmodel.{Bean, IgnoredProperty}
+import de.maci.beanmodel.{ Bean, IgnoredProperty }
 import org.apache.commons.lang3.StringUtils
-
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
+import org.jboss.forge.roaster.model.source.JavaSource
+import org.jboss.forge.roaster.model.source.JavaClassSource
+import org.jboss.forge.roaster.model.JavaClass
 
 /**
-  * @author Daniel Götten <daniel.goetten@googlemail.com>
-  * @since 22.08.14
-  */
-trait SourceModel {
+ * @author Daniel Götten <daniel.goetten@googlemail.com>
+ * @since 22.08.14
+ */
+trait JavaSourceGenerator[T <: JavaSource[T]] {
 
-  def toSource: String
-
-  def className: String
+  def generate: JavaSource[JavaClassSource]
 }
 
-protected[source_model] object SourceModel {
+protected[core] object JavaSourceGenerator {
 
   def propertiesOf(typeElement: TypeElement): List[PropertyDescriptor] = typeElement.getEnclosedElements.toList
     .filter(e => (ElementKind.FIELD eq e.getKind) && !containsAnnotation(e, classOf[IgnoredProperty]) && isAccessible(e.asInstanceOf[VariableElement]))
@@ -87,7 +86,7 @@ protected[source_model] object SourceModel {
     !isSuperclassAnyRef && existsValidSuperclassModel
   }
 
-  def withNewline: (String) => String = text => s"$text${System.lineSeparator}"
+  def withNewline: (String) => String = text => s"${text}${System.lineSeparator}"
 
   def resolveTypesToImport(propertyModels: List[PropertyDescriptor], context: GenerationContext): Set[String] =
     resolveTypesToImport(propertyModels, Set(), context)

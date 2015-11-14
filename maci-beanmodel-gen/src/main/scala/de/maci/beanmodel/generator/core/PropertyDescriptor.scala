@@ -13,7 +13,7 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-package de.maci.beanmodel.generator.source.model
+package de.maci.beanmodel.generator.core
 
 import javax.lang.model.element.VariableElement
 
@@ -22,10 +22,10 @@ import de.maci.beanmodel.generator.context.GenerationContext
 import de.maci.beanmodel.generator.util.TypeMirrors.{canonicalName, simpleName}
 
 /**
-  * @author Daniel Götten <daniel.goetten@googlemail.com>
-  * @since 18.08.14
-  */
-protected[source_model] class PropertyDescriptor private(val element: VariableElement) {
+ * @author Daniel Götten <daniel.goetten@googlemail.com>
+ * @since 18.08.14
+ */
+protected[core] class PropertyDescriptor private (val element: VariableElement) {
 
   require(Option(element).isDefined, s"VariableElement must not be null")
 
@@ -34,11 +34,11 @@ protected[source_model] class PropertyDescriptor private(val element: VariableEl
   val `type` = simpleName(element.asType)
 
   def usedTypes(context: GenerationContext): Set[String] =
-  // TODO Do not import if in same package
+    // TODO do not import if same package
     Set(classOf[Property[_]].getCanonicalName, element.getEnclosingElement.asType.toString, canonicalName(element.asType))
 }
 
-protected[source_model] object PropertyDescriptor {
+protected[core] object PropertyDescriptor {
 
   def apply(element: VariableElement) = new PropertyDescriptor(element)
 }

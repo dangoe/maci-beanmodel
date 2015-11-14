@@ -17,23 +17,24 @@ package de.maci.beanmodel.generator.context
 
 import javax.annotation.processing.ProcessingEnvironment
 
+import scala.util.Try
+
 /**
   * @author Daniel Götten <daniel.goetten@googlemail.com>
   * @since 18.08.14
   */
 final class GenerationContext(val env: ProcessingEnvironment) {
 
-  def withSuppressAllWarnings = {
-    val suppressAllWarnings = option("suppressAllWarnings")
-    suppressAllWarnings.isEmpty || isTrue(suppressAllWarnings.get)
-  }
+  val suppressAllWarnings = option(GenerationContext.SuppressAllWarnings)
+
+  def isSuppressAllWarnings = suppressAllWarnings.isEmpty || Try(suppressAllWarnings.get.toBoolean).getOrElse(false)
 
   private[this] def option(option: String) = Option(env.getOptions.get(option))
-
-  private[this] def isTrue(value: String) = value == "true"
 }
 
 object GenerationContext {
+
+  private[context] val SuppressAllWarnings = "suppressAllWarnings"
 
   def apply(env: ProcessingEnvironment) = new GenerationContext(env)
 }

@@ -13,23 +13,15 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-package de.maci.beanmodel.generator.util
+package de.maci.beanmodel.generator.core.conversion
 
-import java.io.{PrintWriter, StringWriter}
-
-import de.maci.beanmodel.generator.util.Closeables.autoclose
+import javax.lang.model.element.Name
 
 /**
  * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 22.08.14
+ * @since 26.04.15
  */
-object Exceptions {
+object JavaLangModelConversions {
 
-  def stackTraceOf(throwable: Throwable) = {
-    autoclose(() => new StringWriter, (sw: StringWriter) => {
-      autoclose(() => new PrintWriter(sw, true), (pw: PrintWriter) => throwable.printStackTrace(pw))
-
-      sw.getBuffer.toString
-    })
-  }
+  implicit def nameToString(n: Name): String = n.toString()
 }
