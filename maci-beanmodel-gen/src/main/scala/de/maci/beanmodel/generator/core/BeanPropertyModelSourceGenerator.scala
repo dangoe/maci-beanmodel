@@ -16,62 +16,71 @@
 package de.maci.beanmodel.generator.core
 
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter._
+import java.time.format.DateTimeFormatter
 import javax.annotation.Generated
-import javax.lang.model.element.TypeElement
+import javax.lang.model.element.{TypeElement, VariableElement}
 
-import de.maci.beanmodel.{BeanPropertyModel, Property}
 import de.maci.beanmodel.generator.BeanModelProcessor
+import de.maci.beanmodel.generator.util.Elements._
+import de.maci.beanmodel.{BeanPropertyModel, IgnoredProperty, Property}
 import de.maci.beanmodel.generator.context.GenerationContext
-import de.maci.beanmodel.generator.core.JavaSourceGenerator.{hasBeanValidSuperclass, propertiesOf}
 import de.maci.beanmodel.generator.util.TypeMirrors._
 import org.jboss.forge.roaster.Roaster
 import org.jboss.forge.roaster.model.source.{JavaClassSource, JavaSource}
 
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 22.08.14
- */
-final class BeanPropertyModelSourceGenerator private (typeElement: TypeElement, context: GenerationContext) extends JavaSourceGenerator[JavaClassSource] {
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 22.08.14
+  */
+final class BeanPropertyModelSourceGenerator private(context: GenerationContext, typeElement: TypeElement)
+  extends TypeElementProcessor[JavaSource[JavaClassSource]](context, typeElement) {
 
-  override def generate: JavaSource[JavaClassSource] = {
-    val simpleTypeName = typeElement.getSimpleName.toString
-    val canonicalTypeName = typeElement.getQualifiedName.toString
+  private val notIgnoredAndAccessible: (VariableElement) => Boolean =
+    v => !containsAnnotation(v, classOf[IgnoredProperty]) && isAccessible(v)
+
+  override def process: JavaSource[JavaClassSource] = {
+    val source = createBaseClassSource(typeElement, context)
+    val notIgnoredAndAccessibleVariableElements = filteredVariableElements(notIgnoredAndAccessible)
+
+    if (notIgnoredAndAccessibleVariableElements.nonEmpty)
+      source.addImport(classOf[Property[AnyRef]])
+
+    notIgnoredAndAccessibleVariableElements.foreach(v => {
+      val name = v.getSimpleName
+      source.addField(
+        s"""public static final Property<${simplify(v.asType)}> $name =
+            |new Property<>(${simpleName(v.getEnclosingElement.asType)}.class, "$name",
+            |(Class<${simplify(v.asType)}>) (Class<?>) ${simpleName(v.asType)}.class);""".stripMargin)
+      relvantTypes(v.asType).foreach(s => source.addImport(s))
+    })
+
+    return source
+  }
+
+  private def createBaseClassSource(typeElement: TypeElement, context: GenerationContext): JavaClassSource = {
+
+    val packageName = context.env.getElementUtils.getPackageOf(typeElement).getQualifiedName.toString
+    val name = s"${typeElement.getSimpleName}Properties"
 
     val source = Roaster.create(classOf[JavaClassSource])
-    source.setName(s"${simpleTypeName}Properties")
-    source.setPackage(context.env.getElementUtils.getPackageOf(typeElement).getQualifiedName.toString)
-      .setName(s"${simpleTypeName}Properties")
-      .setPublic()
+    source.setPackage(packageName)
+    source.setName(name)
+    source.setPublic()
 
-    if (hasBeanValidSuperclass(typeElement, context)) {
+    if (hasBeanValidSuperclass) {
       source.setSuperType(s"${simpleName(typeElement.getSuperclass)}Properties")
 
       // TODO do not import if same package
       source.addImport(s"${canonicalName(typeElement.getSuperclass)}Properties")
     }
 
-    if (context.isSuppressAllWarnings) {
+    if (context.suppressAllWarnings)
       source.addAnnotation(classOf[SuppressWarnings]).setStringValue("all")
-    }
 
-    source.addAnnotation(classOf[BeanPropertyModel]).setStringValue(canonicalTypeName)
-
+    source.addAnnotation(classOf[BeanPropertyModel]).setStringValue(typeElement.getQualifiedName.toString)
     source.addAnnotation(classOf[Generated])
       .setStringArrayValue(List(classOf[BeanModelProcessor].getCanonicalName).toArray)
-      .setStringValue("date", ISO_LOCAL_DATE.format(LocalDate.now))
-
-    if (propertiesOf(typeElement).nonEmpty) {
-      source.addImport(classOf[Property[AnyRef]])
-    }
-
-    propertiesOf(typeElement).foreach(p => {
-      source.addField(
-        s"""public static final Property<${simplify(p.element.asType)}> ${p.name} =
-           |new Property<>(${simpleName(p.element.getEnclosingElement.asType)}.class, "${p.name}", (Class<${simplify(p.element.asType)}>) (Class<?>) ${simpleName(p.element.asType)}.class);""".stripMargin)
-
-      relvantTypes(p.element.asType).foreach(s => source.addImport(s))
-    })
+      .setStringValue("date", DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now))
 
     return source
   }
@@ -79,6 +88,6 @@ final class BeanPropertyModelSourceGenerator private (typeElement: TypeElement, 
 
 object BeanPropertyModelSourceGenerator {
 
-  def apply(typeElement: TypeElement, context: GenerationContext) = new BeanPropertyModelSourceGenerator(typeElement, context)
-
+  def apply(context: GenerationContext)(typeElement: TypeElement) =
+    new BeanPropertyModelSourceGenerator(context, typeElement)
 }

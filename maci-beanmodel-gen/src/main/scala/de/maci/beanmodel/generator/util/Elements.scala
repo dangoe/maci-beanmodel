@@ -74,4 +74,19 @@ object Elements {
 
     !isSuperclassAnyRef && existsValidSuperclassModel
   }
+
+  def typeElement: (Element) => Boolean = _.getKind == ElementKind.CLASS
+
+  def containsAnnotation(elem: Element, annotationTypes: Class[_ <: Annotation]*) = {
+
+    def annotation: (AnnotationMirror) => Boolean = {
+      def asCanonicalName: (Class[_ <: Annotation]) => String =
+        (t: Class[_ <: Annotation]) => t.getCanonicalName
+
+      a => annotationTypes.toSet.map(asCanonicalName)
+        .contains(a.getAnnotationType.asElement().asInstanceOf[TypeElement].getQualifiedName.toString)
+    }
+
+    elem.getAnnotationMirrors.toSet.exists(annotation)
+  }
 }

@@ -17,19 +17,20 @@ package de.maci.beanmodel.generator.util
 
 import java.io.{PrintWriter, StringWriter}
 
-import de.maci.beanmodel.generator.util.Closeables.autoclose
+import de.maci.beanmodel.generator.util.Closeables.consume
 
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 22.08.14
- */
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 22.08.14
+  */
 object Exceptions {
 
   def stackTraceOf(throwable: Throwable) = {
-    autoclose(() => new StringWriter, (sw: StringWriter) => {
-      autoclose(() => new PrintWriter(sw, true), (pw: PrintWriter) => throwable.printStackTrace(pw))
-
-      sw.getBuffer.toString
+    consume(new StringWriter)(sw => {
+      consume(new PrintWriter(sw, true)) { pw =>
+        throwable.printStackTrace(pw)
+        sw.getBuffer.toString
+      }
     })
   }
 }

@@ -16,41 +16,36 @@
 package de.maci.beanmodel.generator
 
 import javax.annotation.processing.{AbstractProcessor, RoundEnvironment, SupportedAnnotationTypes}
-import javax.lang.model.element.{Element, ElementKind, TypeElement}
+import javax.lang.model.element.{Element, TypeElement}
 
 import de.maci.beanmodel.generator.context.GenerationContext
 import de.maci.beanmodel.generator.core.BeanPropertyModelSourceGenerator
 import de.maci.beanmodel.generator.core.io.JavaSourceWriter
-import org.jboss.forge.roaster.model.source.JavaSource
+import de.maci.beanmodel.generator.util.Elements.typeElement
 
 import scala.collection.JavaConversions._
 
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 18.08.14
- */
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 18.08.14
+  */
 @SupportedAnnotationTypes(Array("de.maci.beanmodel.Bean", "javax.persistence.Entity"))
 final class BeanModelProcessor extends AbstractProcessor {
 
   def process(annotations: java.util.Set[_ <: TypeElement], roundEnv: RoundEnvironment): Boolean = {
     val context = GenerationContext(processingEnv)
+    val sourceWriter = JavaSourceWriter.forContext(context)
 
-    def writeAll(sources: Set[_ <: JavaSource[_]]) = sources.foreach(JavaSourceWriter.write(_, context))
+    val sourceGen = BeanPropertyModelSourceGenerator(context) _
 
-    typeElementsToBeProcessed(annotations.toSet, roundEnv).toList.sortWith(sortOrder)
-      .foreach(e => writeAll(Set(BeanPropertyModelSourceGenerator(e, context).generate)))
+    typeElementsToBeProcessed(annotations.toSet, roundEnv).foreach(e => sourceWriter.write(sourceGen(e).process))
 
     return true
   }
 
-  private[this] def sortOrder: (TypeElement, TypeElement) => Boolean =
-    (t, o) => true // TODO To be implemented
-
-  private[this] def typeElementsToBeProcessed(annotations: Set[_ <: TypeElement], roundEnv: RoundEnvironment) = {
+  private[this] def typeElementsToBeProcessed(annotations: Set[_ <: TypeElement], roundEnv: RoundEnvironment): Set[TypeElement] = {
     def annotatedWith: (TypeElement) => Set[Element] = roundEnv.getElementsAnnotatedWith(_).toSet
-    def isTypeElement: (Element) => Boolean = _.getKind == ElementKind.CLASS
 
-    annotations.flatMap(annotatedWith).filter(isTypeElement).map(_.asInstanceOf[TypeElement]).toSet
+    return annotations.flatMap(annotatedWith).filter(typeElement).map(_.asInstanceOf[TypeElement])
   }
 }
-

@@ -15,32 +15,36 @@
   */
 package de.maci.beanmodel.generator.core.io
 
-import java.io._
 import javax.tools.Diagnostic.Kind
+
 import de.maci.beanmodel.generator.context.GenerationContext
-import de.maci.beanmodel.generator.util.Closeables.autoclose
+import de.maci.beanmodel.generator.util.Closeables.consume
 import de.maci.beanmodel.generator.util.Exceptions.stackTraceOf
 import org.jboss.forge.roaster.model.source.JavaSource
 
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 18.08.14
- */
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 18.08.14
+  */
+class JavaSourceWriter protected(context: GenerationContext) {
+
+  def write(source: JavaSource[_]) {
+    try {
+      consume(filer.createSourceFile(source.getCanonicalName).openOutputStream) { os =>
+        os.write(source.toString.getBytes(context.encoding))
+        os.flush()
+      }
+    } catch {
+      case e: Exception => messager.printMessage(Kind.ERROR, stackTraceOf(e))
+    }
+  }
+
+  protected def filer = context.env.getFiler
+
+  protected def messager = context.env.getMessager
+}
+
 object JavaSourceWriter {
 
-  def write(source: JavaSource[_], context: GenerationContext) {
-
-    def handleException: (Exception) => Unit =
-      (e: Exception) => context.env.getMessager.printMessage(Kind.ERROR, stackTraceOf(e).getOrElse("Unknown cause"))
-
-    val sourceFile = context.env.getFiler.createSourceFile(source.getCanonicalName)
-
-    autoclose(() => sourceFile.openOutputStream, (os: OutputStream) => {
-      autoclose(() => new PrintWriter(os), (w: PrintWriter) => {
-        w.append(source.toString)
-        w.flush()
-        w.close()
-      }, handleException)
-    }, handleException)
-  }
+  def forContext(context: GenerationContext): JavaSourceWriter = new JavaSourceWriter(context)
 }

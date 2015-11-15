@@ -15,17 +15,19 @@
   */
 package de.maci.beanmodel.generator.core
 
-import javax.lang.model.element.VariableElement
+import javax.lang.model.element.{ElementKind, TypeElement, VariableElement}
 
 import de.maci.beanmodel.Property
 import de.maci.beanmodel.generator.context.GenerationContext
 import de.maci.beanmodel.generator.util.TypeMirrors.{canonicalName, simpleName}
 
+import scala.collection.JavaConversions._
+
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 18.08.14
- */
-protected[core] class PropertyDescriptor private (val element: VariableElement) {
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 18.08.14
+  */
+protected[core] class PropertyDescriptor private(val element: VariableElement) {
 
   require(Option(element).isDefined, s"VariableElement must not be null")
 
@@ -34,11 +36,15 @@ protected[core] class PropertyDescriptor private (val element: VariableElement) 
   val `type` = simpleName(element.asType)
 
   def usedTypes(context: GenerationContext): Set[String] =
-    // TODO do not import if same package
+  // TODO do not import if same package
     Set(classOf[Property[_]].getCanonicalName, element.getEnclosingElement.asType.toString, canonicalName(element.asType))
 }
 
 protected[core] object PropertyDescriptor {
 
-  def apply(element: VariableElement) = new PropertyDescriptor(element)
+  def extractProperties(typeElement: TypeElement, filter: (VariableElement) => Boolean = v => true) = {
+    typeElement.getEnclosedElements.toList
+      .filter(e => ElementKind.FIELD.eq(e.getKind) && filter.apply(e.asInstanceOf[VariableElement]))
+      .map(v => new PropertyDescriptor(v.asInstanceOf[VariableElement]))
+  }
 }

@@ -15,13 +15,16 @@
   */
 package de.maci.beanmodel.generator.core.conversion
 
+import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.Name
 
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 26.04.15
- */
-object JavaLangModelConversions {
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 26.04.15
+  */
+object ImplicitConversions {
 
-  implicit def nameToString(n: Name): String = n.toString()
+  implicit def nameToString(n: Name): String = n.toString
+
+  implicit def typeMirrorToString(t: TypeMirror): String = t.toString
 }
