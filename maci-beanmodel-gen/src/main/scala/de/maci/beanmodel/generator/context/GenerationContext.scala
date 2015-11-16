@@ -18,25 +18,29 @@ package de.maci.beanmodel.generator.context
 import java.nio.charset.Charset
 import javax.annotation.processing.ProcessingEnvironment
 
-import de.maci.beanmodel.generator.context.GenerationContext.{Encoding, SuppressAllWarnings}
+import de.maci.beanmodel.generator.context.GenerationContext._
+
+import scala.util.Try
 
 /**
   * @author Daniel Götten <daniel.goetten@googlemail.com>
   * @since 18.08.14
   */
-class GenerationContext(val env: ProcessingEnvironment) {
+class GenerationContext private(val env: ProcessingEnvironment) {
 
-  def encoding = Charset.forName(option(Encoding).getOrElse("UTF-8"))
+  def encoding = Try(Charset.forName(option(PropertyEncoding).getOrElse(DefaultEncoding.name))).getOrElse(DefaultEncoding)
 
-  def suppressAllWarnings = option(SuppressAllWarnings).map(s => s.toBoolean).getOrElse(true)
+  def suppressAllWarnings = option(PropertySuppressAllWarnings).map(s => s.toBoolean).getOrElse(true)
 
   private def option(option: String) = Option(env.getOptions.get(option))
 }
 
 object GenerationContext {
 
-  private[context] val Encoding = "encoding"
-  private[context] val SuppressAllWarnings = "suppressAllWarnings"
+  private[context] val DefaultEncoding = Charset.forName("UTF-8")
+
+  private[context] val PropertyEncoding = "encoding"
+  private[context] val PropertySuppressAllWarnings = "suppressAllWarnings"
 
   def apply(env: ProcessingEnvironment) = new GenerationContext(env)
 }
