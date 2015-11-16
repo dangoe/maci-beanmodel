@@ -43,7 +43,7 @@ class JavaSourceWriterTest extends FlatSpec with Matchers with MockitoSugar {
     assert(messageCaptor.getValue.startsWith("java.io.IOException: Some message"))
   }
 
-  "JavaSourceWriter" should "handle all runtime exceptions by printing them using the environmental messager" in {
+  it should "handle all runtime exceptions by printing them using the environmental messager" in {
     val messagerMock = mock[Messager]
     val sut = new JavaSourceWriter(generationContext) {
 
@@ -63,7 +63,7 @@ class JavaSourceWriterTest extends FlatSpec with Matchers with MockitoSugar {
     assert(messageCaptor.getValue.startsWith("java.lang.RuntimeException: Some message"))
   }
 
-  "JavaSourceWriter" should "write the source to the corresponding output stream" in {
+  it should "write the source to the corresponding output stream" in {
     val outputStream = mock[OutputStream]
 
     val sut = new JavaSourceWriter(generationContext) {

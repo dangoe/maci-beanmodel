@@ -23,11 +23,5 @@ import java.io.Closeable
   */
 object Closeables {
 
-  def consume[C <: Closeable, R](closeable: C)(block: C => R): R = {
-    try {
-      return block(closeable)
-    } finally {
-      closeable.close()
-    }
-  }
+  def consume[C <: Closeable, R](closeable: C)(block: C => R): R = try block(closeable) finally closeable.close()
 }
