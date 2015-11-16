@@ -18,75 +18,51 @@ package de.maci.beanmodel.generator.util
 import java.lang.annotation.Annotation
 import javax.lang.model.element._
 
-import de.maci.beanmodel.Bean
-import de.maci.beanmodel.generator.context.GenerationContext
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.JavaConversions._
 
 /**
- * @author Daniel Götten <daniel.goetten@googlemail.com>
- * @since 30.04.15
- */
+  * @author Daniel Götten <daniel.goetten@googlemail.com>
+  * @since 30.04.15
+  */
 object Elements {
 
-  def isAnnotationPresent(element: Element, annotationTypes: Class[_ <: Annotation]*) = {
+  class ElementEval private[util](elem: Element) {
 
+    def annotatedWithAllOf(annotationTypes: Class[_ <: Annotation]*): Boolean = {
       def annotation: (AnnotationMirror) => Boolean = {
-          def asCanonicalName: (Class[_ <: Annotation]) => String =
-            (t: Class[_ <: Annotation]) => t.getCanonicalName
+        def asCanonicalName: (Class[_ <: Annotation]) => String =
+          (t: Class[_ <: Annotation]) => t.getCanonicalName
 
         a => annotationTypes.toSet.map(asCanonicalName)
           .contains(a.getAnnotationType.asElement().asInstanceOf[TypeElement].getQualifiedName.toString)
       }
 
-    element.getAnnotationMirrors.toSet.exists(annotation)
+      elem.getAnnotationMirrors.toSet.exists(annotation)
+    }
   }
 
-  def isAccessible(variableElement: VariableElement) = {
-    val typeElement = variableElement.getEnclosingElement.asInstanceOf[TypeElement]
-    val variableName = variableElement.getSimpleName.toString
+  class VariableElementEval private[util](elem: VariableElement) extends ElementEval(elem) {
+
+    def accessible = {
+      val typeElement = elem.getEnclosingElement.asInstanceOf[TypeElement]
+      val variableName = elem.getSimpleName.toString
 
       def existsMethod(prefix: String) = {
-          def accessorMatching: (Element) => Boolean =
-            s"$prefix${StringUtils.capitalize(variableName)}" == _.getSimpleName.toString
+        def accessorMatching: (Element) => Boolean =
+          s"$prefix${StringUtils.capitalize(variableName)}" == _.getSimpleName.toString
 
         typeElement.getEnclosedElements.toList.filter(_.getKind eq ElementKind.METHOD).exists(accessorMatching)
       }
 
-    existsMethod("get") && existsMethod("set")
-  }
-
-  def hasBeanValidSuperclass(typeElement: TypeElement, context: GenerationContext) = {
-
-      def isSuperclassAnyRef =
-        classOf[AnyRef].getCanonicalName == typeElement.getSuperclass.toString
-
-      def existsValidSuperclassModel = {
-
-          def resolveSuperClassTypeElement: (String) => Option[TypeElement] =
-            n => Option(context.env.getElementUtils.getTypeElement(n))
-
-        val superClassTypeElement = resolveSuperClassTypeElement(s"${typeElement.getSuperclass.toString}")
-
-        superClassTypeElement.isDefined && isAnnotationPresent(superClassTypeElement.get, classOf[Bean])
-      }
-
-    !isSuperclassAnyRef && existsValidSuperclassModel
+      existsMethod("get") && existsMethod("set")
+    }
   }
 
   def typeElement: (Element) => Boolean = _.getKind == ElementKind.CLASS
 
-  def containsAnnotation(elem: Element, annotationTypes: Class[_ <: Annotation]*) = {
+  def is(elem: Element) = new ElementEval(elem)
 
-    def annotation: (AnnotationMirror) => Boolean = {
-      def asCanonicalName: (Class[_ <: Annotation]) => String =
-        (t: Class[_ <: Annotation]) => t.getCanonicalName
-
-      a => annotationTypes.toSet.map(asCanonicalName)
-        .contains(a.getAnnotationType.asElement().asInstanceOf[TypeElement].getQualifiedName.toString)
-    }
-
-    elem.getAnnotationMirrors.toSet.exists(annotation)
-  }
+  def is(elem: VariableElement) = new VariableElementEval(elem)
 }

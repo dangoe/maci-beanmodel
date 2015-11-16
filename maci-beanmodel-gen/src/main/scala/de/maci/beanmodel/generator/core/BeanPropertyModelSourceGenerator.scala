@@ -21,10 +21,10 @@ import javax.annotation.Generated
 import javax.lang.model.element.{TypeElement, VariableElement}
 
 import de.maci.beanmodel.generator.BeanModelProcessor
-import de.maci.beanmodel.generator.util.Elements._
-import de.maci.beanmodel.{BeanPropertyModel, IgnoredProperty, Property}
 import de.maci.beanmodel.generator.context.GenerationContext
+import de.maci.beanmodel.generator.util.Elements._
 import de.maci.beanmodel.generator.util.TypeMirrors._
+import de.maci.beanmodel.{BeanPropertyModel, IgnoredProperty, Property}
 import org.jboss.forge.roaster.Roaster
 import org.jboss.forge.roaster.model.source.{JavaClassSource, JavaSource}
 
@@ -36,16 +36,16 @@ final class BeanPropertyModelSourceGenerator private(context: GenerationContext,
   extends TypeElementProcessor[JavaSource[JavaClassSource]](context, typeElement) {
 
   private val notIgnoredAndAccessible: (VariableElement) => Boolean =
-    v => !containsAnnotation(v, classOf[IgnoredProperty]) && isAccessible(v)
+    v => !is(v).annotatedWithAllOf(classOf[IgnoredProperty]) && is(v).accessible
 
   override def process: JavaSource[JavaClassSource] = {
     val source = createBaseClassSource(typeElement, context)
-    val notIgnoredAndAccessibleVariableElements = filteredVariableElements(notIgnoredAndAccessible)
+    val relevantVariableElements = variableElements.filter(notIgnoredAndAccessible)
 
-    if (notIgnoredAndAccessibleVariableElements.nonEmpty)
+    if (relevantVariableElements.nonEmpty)
       source.addImport(classOf[Property[AnyRef]])
 
-    notIgnoredAndAccessibleVariableElements.foreach(v => {
+    relevantVariableElements.foreach(v => {
       val name = v.getSimpleName
       source.addField(
         s"""public static final Property<${simplify(v.asType)}> $name =
@@ -67,7 +67,7 @@ final class BeanPropertyModelSourceGenerator private(context: GenerationContext,
     source.setName(name)
     source.setPublic()
 
-    if (hasBeanValidSuperclass) {
+    if (superclassIsRelevantBean) {
       source.setSuperType(s"${simpleName(typeElement.getSuperclass)}Properties")
 
       // TODO do not import if same package

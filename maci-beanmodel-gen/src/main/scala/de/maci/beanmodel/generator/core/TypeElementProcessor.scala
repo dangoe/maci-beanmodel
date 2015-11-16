@@ -15,11 +15,12 @@
   */
 package de.maci.beanmodel.generator.core
 
+import javax.lang.model.element.ElementKind.FIELD
 import javax.lang.model.element._
 
 import de.maci.beanmodel.Bean
 import de.maci.beanmodel.generator.context.GenerationContext
-import de.maci.beanmodel.generator.util.Elements.containsAnnotation
+import de.maci.beanmodel.generator.util.Elements._
 
 import scala.collection.JavaConversions._
 
@@ -31,23 +32,13 @@ abstract class TypeElementProcessor[R](context: GenerationContext, typeElement: 
 
   def process: R
 
-  protected def filteredVariableElements(filter: (VariableElement) => Boolean = v => true) = {
-    typeElement.getEnclosedElements.toList
-      .filter(e => ElementKind.FIELD.eq(e.getKind) && filter.apply(e.asInstanceOf[VariableElement]))
-      .map(v => v.asInstanceOf[VariableElement])
-  }
+  protected def elementUtils = context.env.getElementUtils
 
-  protected def hasBeanValidSuperclass = {
+  protected def variableElements = enclosedElements.filter(e => FIELD eq e.getKind).map(v => v.asInstanceOf[VariableElement])
 
-    def isSuperclassAnyRef = classOf[AnyRef].getCanonicalName == typeElement.getSuperclass.toString
+  protected def enclosedElements = typeElement.getEnclosedElements.toList
 
-    def existsValidSuperclassModel = {
-      def resolveSuperClassTypeElement: (String) => Option[TypeElement] = n => Option(context.env.getElementUtils.getTypeElement(n))
+  protected def superclass = Option(elementUtils.getTypeElement(typeElement.getSuperclass.toString))
 
-      val superClassTypeElement = resolveSuperClassTypeElement(s"${typeElement.getSuperclass.toString}")
-      superClassTypeElement.isDefined && containsAnnotation(superClassTypeElement.get, classOf[Bean])
-    }
-
-    !isSuperclassAnyRef && existsValidSuperclassModel
-  }
+  protected def superclassIsRelevantBean = superclass.exists(s => is(s).annotatedWithAllOf(classOf[Bean]))
 }
