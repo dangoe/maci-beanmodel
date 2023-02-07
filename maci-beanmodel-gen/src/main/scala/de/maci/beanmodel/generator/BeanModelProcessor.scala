@@ -16,12 +16,13 @@
 package de.maci.beanmodel.generator
 
 import javax.annotation.processing.{AbstractProcessor, RoundEnvironment, SupportedAnnotationTypes}
+import javax.lang.model.element.ElementKind.CLASS
 import javax.lang.model.element.{Element, TypeElement}
 
 import de.maci.beanmodel.generator.context.GenerationContext
 import de.maci.beanmodel.generator.core.BeanPropertyModelSourceGenerator
 import de.maci.beanmodel.generator.core.io.JavaSourceWriter
-import de.maci.beanmodel.generator.util.Elements.typeElement
+import de.maci.beanmodel.generator.util.Elements._
 
 import scala.collection.JavaConversions._
 
@@ -46,6 +47,6 @@ final class BeanModelProcessor extends AbstractProcessor {
   private[this] def typeElementsToBeProcessed(annotations: Set[_ <: TypeElement], roundEnv: RoundEnvironment): Set[TypeElement] = {
     def annotatedWith: (TypeElement) => Set[Element] = roundEnv.getElementsAnnotatedWith(_).toSet
 
-    return annotations.flatMap(annotatedWith).filter(typeElement).map(_.asInstanceOf[TypeElement])
+    return annotations.flatMap(annotatedWith).filter(is(_).ofKind(CLASS)).map(_.asInstanceOf[TypeElement])
   }
 }

@@ -30,6 +30,8 @@ object Elements {
 
   class ElementEval private[util](elem: Element) {
 
+    def ofKind(kind: ElementKind) = elem.getKind eq kind
+
     def annotatedWithAllOf(annotationTypes: Class[_ <: Annotation]*): Boolean = {
       def annotation: (AnnotationMirror) => Boolean = {
         def asCanonicalName: (Class[_ <: Annotation]) => String =
@@ -45,7 +47,11 @@ object Elements {
 
   class VariableElementEval private[util](elem: VariableElement) extends ElementEval(elem) {
 
-    def accessible = {
+    def accessible: Boolean = {
+      if (elem.getModifiers.contains(Modifier.PUBLIC)) {
+        return true
+      }
+
       val typeElement = elem.getEnclosingElement.asInstanceOf[TypeElement]
       val variableName = elem.getSimpleName.toString
 
@@ -56,11 +62,9 @@ object Elements {
         typeElement.getEnclosedElements.toList.filter(_.getKind eq ElementKind.METHOD).exists(accessorMatching)
       }
 
-      existsMethod("get") && existsMethod("set")
+      return existsMethod("get") && existsMethod("set")
     }
   }
-
-  def typeElement: (Element) => Boolean = _.getKind == ElementKind.CLASS
 
   def is(elem: Element) = new ElementEval(elem)
 
